@@ -1,27 +1,33 @@
-from flask import Flask, request, render_template, redirect, session, escape
+from flask import Flask, request, render_template, redirect, session, escape, make_response, jsonify
 from downloads import config
-import requests, json, os
-from uuid import uuid4
+import requests, json, os, time
+import tempfile
+import pandas as pd
 
-app = Flask(__name__, static_folder='static', static_url_path='/static')
+app = Flask(__name__, static_folder='static', static_url_path='/syaro/static')
+app.config['SECRET_KEY'] = os.urandom(8192)
 
 @app.route('/syaro/swarm/', methods=['GET'])
 def site_home():
     code = request.args.get('code', None)
-    token = os.environ.get('swarm', None)
+    token = session.get('swarm', None) if not config.debug else config.debug
     g = geojsonload()
-    if code:
-        if not token:
-            url = "https://foursquare.com/oauth2/access_token?" + \
-                f"client_id={config.app['key']}&client_secret={config.app['secret']}" + \
-                f"&grant_type=authorization_code&redirect_uri={config.app['redirect']}&code={code}"
-            token = json.loads(requests.get(url).text)["access_token"]
-            os.environ['swarm'] = token
+    if not code and not token:
+        time.sleep(3)
+        url = "https://foursquare.com/oauth2/authenticate?" + \
+            f"client_id={config.app['key']}&response_type=code&redirect_uri={config.app['redirect']}"
+        return redirect(url)
+    if code and not token:
+        url = "https://foursquare.com/oauth2/access_token?" + \
+            f"client_id={config.app['key']}&client_secret={config.app['secret']}" + \
+            f"&grant_type=authorization_code&redirect_uri={config.app['redirect']}&code={code}"
+        token = json.loads(requests.get(url).text)["access_token"]
+        session['swarm'] = token
     js = requests.get("https://api.foursquare.com/v2/venues/search", dict(
         oauth_token=token,
         m="swarm",
         v="20190930",
-        radius=1000,
+        radius=10000,
         ll="35.474834,139.367800"
     )).text
     for x in json.loads(js)['response']['venues']:
@@ -30,6 +36,7 @@ def site_home():
         g['features'].append(d)
     return render_template('swarm/index.html', app=config.app, g=json.dumps(g))
     # js=json.dumps(js, indent=2, ensure_ascii=False)
+
 def geojsonload():
     res = {
         "type": "FeatureCollection",
@@ -37,6 +44,35 @@ def geojsonload():
         "features": []
     }
     return res
+
+@app.route('/syaro/swarm/search.json', methods=['GET'])
+def site2():
+    t = session.get('swarm', None) if not config.debug else config.debug
+    ll = request.args.get('ll', None, str)
+    if not t or not ll:
+        return ''
+    js = requests.get("https://api.foursquare.com/v2/venues/search", dict(
+        oauth_token=t,
+        m="swarm",
+        v="20190930",
+        radius=1000,
+        ll=ll
+    )).text
+    g = geojsonload()
+    table = []
+    for x in json.loads(js)['response']['venues']:
+        loc = x['location']
+        d = { "type": "Feature", "geometry": { "type": "Point", "coordinates": [ loc['lng'], loc['lat'] ] } }
+        g['features'].append(d)
+        table.append([
+            x['name'], '\n'.join([xx['name'] for xx in x['categories']])
+        ])
+    df = pd.DataFrame(table)
+    with tempfile.TemporaryDirectory() as x:
+        df.to_html(f'{x}/x.html')
+        with open(f'{x}/x.html', 'r') as f:
+            table = f.read()
+    return make_response(jsonify(dict(geojson=g, table=table)), 200)
 
 if __name__ == "__main__":
     app.run(debug=True, threaded=True, processes=1)

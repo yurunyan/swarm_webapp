@@ -1,62 +1,119 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
 <title></title>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.3.3/semantic.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.3.3/semantic.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.1/dist/leaflet.css" integrity="sha512Rksm5RenBEKSKFjgI3a41vrjkw4EVPlJ3+OiI65vTjIdo9brlAacEuKOiQ5OFh7cOI1bkDwLqdLw3Zg0cRJAAQ==" crossorigin=""/>
 <script src="https://unpkg.com/leaflet@1.3.1/dist/leaflet.js" integrity="sha512-/Nsx9X4HebavoBvEBuyp3I7od5tA0UzAxs+j83KgC8PU0kgB4XiK4Lfe4y4cgBtaRJQEIFCW+oC506aPT2L1zw==" crossorigin=""></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.3.0/dist/leaflet.markercluster.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.3.0/dist/MarkerCluster.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.3.0/dist/MarkerCluster.Default.css" />
-<style type="text/css">
-  html,body{
-    height: 100%;
-    width: 100%;
-  }
-  #mapid {
-    height: 90%;
-  }
+<link rel="stylesheet" href="https://cdn.datatables.net/t/bs-3.3.6/jqc-1.12.0,dt-1.10.11/datatables.min.css"/> 
+<script src="https://cdn.datatables.net/t/bs-3.3.6/jqc-1.12.0,dt-1.10.11/datatables.min.js"></script>
+<style>
 </style>
 </head>
 <body>
-  <a href="https://foursquare.com/oauth2/authenticate?client_id={{ app.key }}&response_type=code&redirect_uri={{ app.redirect }}">
-    authenticate
-  </a>
-  <div id="mapid"></div>
-  <p>参照元：<a href="http://nlftp.mlit.go.jp/ksj/jpgis/datalist/KsjTmplt-P11.html">国土交通省　国土数値情報</a></p>
+
+
+
+<div class="ui container">
+  <button id="auth" class="big ui button">認証</button>
+  <button id="get" class="huge ui button">get</button>
+</div>
+<div class="ui container">
+<div id="mapid" class="ui embed stackable" style="height: 80%; width:100%; margin: 0; overflow: hidden;" ></div></div>
+<div id="table" class="ui container">
+  <table id="data-table" border="1" class="ui celled table stackable">
+    <thead>
+      <tr style="text-align: right;">
+        <th>last_access_time</th>
+        <th>page title</th>
+        <th>access count</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in data %}
+      <tr>
+        <td>{{ row.1 }}</td>
+        <td><a href="{{ row.0 }}">{{ row.2 }}</a></td>
+        <td>{{ row.3 }}</td>
+        <td><button class="ui button button_test" id="{{ row.4 }}">change</button></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+</div>
+
 </body>
 <script>
 function setinit(){
-  var map = L.map('mapid').setView([35.7, 139.5], 12);
+  var map = L.map('mapid').setView([35.474834, 139.367800], 14);
   return map;
 };
 var map = setinit();
-var geojson;
-var basemap_id;
 L.tileLayer(
   'http://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png',
   {
     attribution: "<a href='http://www.gsi.go.jp/kikakuchousei/kikakuchousei40182.html' target='_blank'>国土地理院</a>|<a href='http://nlftp.mlit.go.jp/ksj/jpgis/datalist/KsjTmplt-P11.html'>国土交通省　国土数値情報</a>"
   }
 ).addTo(map);
-map.eachLayer(function (layer){
-  console.log(layer._leaflet_id);
-  basemap_id = layer._leaflet_id;
-});
-geojson = L.geoJson({{ g | safe }});
-//PointAll.addLayer(geojson);
+var geojson = L.geoJson({{ g | safe }});
 map.addLayer(geojson);
-function getgeojson(file="/static/echi.geojson"){
-  $.getJSON(file, function (data) {
-      var PointAll = L.markerClusterGroup({
-        showCoverageOnHover: false,
-        spiderfyOnMaxZoom: true,
-        removeOutsideVisibleBounds: true,
-        disableClusteringAtZoom: 1
-       });
-      var pointdata = data;
+
+var centercrossIcon = L.icon({
+  iconUrl: '/syaro/static/crosshair.png',       // 他のページに移植する際はURLに注意
+  iconRetinaUrl: '/syaro/static/crosshair.png',
+  iconSize: [35, 35],                          // アイコンサイズ
+  iconAnchor: [17, 17],                        // 画像の左上が 0,0、中央下にしたければ 12,24 とする
+});
+var crosshair = new L.marker(map.getCenter(), {icon: centercrossIcon, clickable:false}).addTo(map); 
+map.on('move', function(e) {
+    crosshair.setLatLng(map.getCenter());
+});
+// http://tancro.e-central.tv/grandmaster/leaflet2/tutorial9.html
+
+jQuery(function($){
+  $('#get').click(function(){
+    var center = map.getCenter();
+    var ll = [center.lat, center.lng].join(',');
+    $.ajax({
+        url:'search.json',
+        type:'GET',
+        data:{'ll': ll}
+    })
+    .done( (data) => {
+      map.addLayer(L.geoJson(data.geojson));
+      $('#table').html(data.table);
+      $('table').attr('class', 'ui celled table');
+      settable();
+    })
   });
-};
-//getgeojson();
+  var url = "https://foursquare.com/oauth2/authenticate?client_id={{ app.key }}&response_type=code&redirect_uri={{ app.redirect }};"
+  $('#auth').click(function(){
+    setTimeout(function(){
+      window.location.href = url;
+    }, 1000);
+  });
+
+  function settable(){
+    $.extend( $.fn.dataTable.defaults, { 
+      language: {
+        url: "http://cdn.datatables.net/plug-ins/9dcbecd42ad/i18n/Japanese.json"
+      } 
+    }); 
+    $("table").DataTable({
+      displayLength: 100,
+      orderable : true,
+      responsive: true,
+      lengthMenu: [ 5, 10, 100, 1000],
+    });
+  };
+});
 </script>
 </html>
