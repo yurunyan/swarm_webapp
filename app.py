@@ -14,7 +14,7 @@ def site_home():
         session['swarm'] = config.debug
     g = geojsonload()
     if not code and not session.get('swarm', None):
-        time.sleep(3)
+        print("authentication start")
         url = "https://foursquare.com/oauth2/authenticate?" + \
             f"client_id={config.app['key']}&response_type=code&redirect_uri={config.app['redirect']}"
         return redirect(url)

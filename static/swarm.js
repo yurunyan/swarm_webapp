@@ -53,7 +53,7 @@ jQuery(function($){
 
     $('#auth').click(function(){
         setTimeout(function(){
-        window.location.href = url;
+            window.location.href = url;
         }, 1000);
     });
 
