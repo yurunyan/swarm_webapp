@@ -23,6 +23,8 @@
 <div class="ui container">
   <button id="auth" class="big ui button">認証</button>
   <button id="get" class="huge ui button">get</button>
+  <button id="ramen" class="huge ui button">ラーメン屋</button>
+  <button id="remove_points" class="huge ui button">ポイント削除</button>
 </div>
 <div class="ui container">
 <div id="mapid" class="ui embed stackable" style="height: 80%; width:100%; margin: 0; overflow: hidden;" ></div></div>
@@ -52,68 +54,8 @@
 
 </body>
 <script>
-function setinit(){
-  var map = L.map('mapid').setView([35.474834, 139.367800], 14);
-  return map;
-};
-var map = setinit();
-L.tileLayer(
-  'http://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png',
-  {
-    attribution: "<a href='http://www.gsi.go.jp/kikakuchousei/kikakuchousei40182.html' target='_blank'>国土地理院</a>|<a href='http://nlftp.mlit.go.jp/ksj/jpgis/datalist/KsjTmplt-P11.html'>国土交通省　国土数値情報</a>"
-  }
-).addTo(map);
 var geojson = L.geoJson({{ g | safe }});
-map.addLayer(geojson);
-
-var centercrossIcon = L.icon({
-  iconUrl: '/syaro/static/crosshair.png',       // 他のページに移植する際はURLに注意
-  iconRetinaUrl: '/syaro/static/crosshair.png',
-  iconSize: [35, 35],                          // アイコンサイズ
-  iconAnchor: [17, 17],                        // 画像の左上が 0,0、中央下にしたければ 12,24 とする
-});
-var crosshair = new L.marker(map.getCenter(), {icon: centercrossIcon, clickable:false}).addTo(map); 
-map.on('move', function(e) {
-    crosshair.setLatLng(map.getCenter());
-});
-// http://tancro.e-central.tv/grandmaster/leaflet2/tutorial9.html
-
-jQuery(function($){
-  $('#get').click(function(){
-    var center = map.getCenter();
-    var ll = [center.lat, center.lng].join(',');
-    $.ajax({
-        url:'search.json',
-        type:'GET',
-        data:{'ll': ll}
-    })
-    .done( (data) => {
-      map.addLayer(L.geoJson(data.geojson));
-      $('#table').html(data.table);
-      $('table').attr('class', 'ui celled table');
-      settable();
-    })
-  });
-  var url = "https://foursquare.com/oauth2/authenticate?client_id={{ app.key }}&response_type=code&redirect_uri={{ app.redirect }};"
-  $('#auth').click(function(){
-    setTimeout(function(){
-      window.location.href = url;
-    }, 1000);
-  });
-
-  function settable(){
-    $.extend( $.fn.dataTable.defaults, { 
-      language: {
-        url: "https://cdn.datatables.net/plug-ins/9dcbecd42ad/i18n/Japanese.json"
-      } 
-    }); 
-    $("table").DataTable({
-      displayLength: 100,
-      orderable : true,
-      responsive: true,
-      lengthMenu: [ 5, 10, 100, 1000],
-    });
-  };
-});
+var url = "https://foursquare.com/oauth2/authenticate?client_id={{ app.key }}&response_type=code&redirect_uri={{ app.redirect }};"
 </script>
+<script src="/syaro/swarm/static/swarm.js"></script>
 </html>

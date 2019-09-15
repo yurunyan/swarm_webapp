@@ -4,7 +4,7 @@ import requests, json, os, time
 import tempfile
 import pandas as pd
 
-app = Flask(__name__, static_folder='static', static_url_path='/syaro/static')
+app = Flask(__name__, static_folder='static', static_url_path='/syaro/swarm/static/')
 app.config['SECRET_KEY'] = os.urandom(8192)
 
 @app.route('/syaro/swarm/', methods=['GET'])
@@ -27,7 +27,7 @@ def site_home():
         oauth_token=token,
         m="swarm",
         v="20190930",
-        radius=10000,
+        radius=50 * 1000,
         ll="35.474834,139.367800"
     )).text
     for x in json.loads(js)['response']['venues']:
@@ -49,15 +49,13 @@ def geojsonload():
 def site2():
     t = session.get('swarm', None) if not config.debug else config.debug
     ll = request.args.get('ll', None, str)
+    categoryId = request.args.get('categoryId', None, str)
     if not t or not ll:
         return ''
-    js = requests.get("https://api.foursquare.com/v2/venues/search", dict(
-        oauth_token=t,
-        m="swarm",
-        v="20190930",
-        radius=1000,
-        ll=ll
-    )).text
+    args = dict(oauth_token=t, m="swarm", v="20190930", radius=1000, ll=ll)
+    if categoryId:
+        args['categoryId'] = categoryId
+    js = requests.get("https://api.foursquare.com/v2/venues/search", args).text
     g = geojsonload()
     table = []
     for x in json.loads(js)['response']['venues']:
