@@ -24,6 +24,9 @@ map.on('move', function(e) {
     crosshair.setLatLng(map.getCenter());
 });
 // http://tancro.e-central.tv/grandmaster/leaflet2/tutorial9.html
+function setratelimit(x){
+    document.getElementById('ratelimit').innerHTML = x
+};
 
 jQuery(function($){
     function get(args){
@@ -39,6 +42,7 @@ jQuery(function($){
             $('#table').html(data.table);
             $('table').attr('class', 'ui celled table');
             settable();
+            setratelimit(data.ratelimit.message)
         })    
     };
     $('#get').click(function(){
@@ -64,9 +68,12 @@ jQuery(function($){
         $.ajax({url:'detail.json', type:'GET', data:args}).done( (data) => {
             if (data.response.venue.friendVisits){
                 t.parent().children('p').html(data.response.venue.friendVisits.count);
+                
             } else {
                 t.parent().children('p').html('だれもいってないよ');
             }
+            console.log(data.ratelimit.Remaining);
+            setratelimit(data.ratelimit.message);
         });
         t.attr('class', 'big ui disabled button')       
     };

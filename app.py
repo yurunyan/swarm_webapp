@@ -60,10 +60,14 @@ def api1():
     args = dict(oauth_token=t, m="swarm", v="20190930", radius=1000, ll=ll)
     if categoryId:
         args['categoryId'] = categoryId
-    js = requests.get("https://api.foursquare.com/v2/venues/search", args).text
+    response = requests.get("https://api.foursquare.com/v2/venues/search", args)
+    ratelimit = {
+        'Remaining' : response.headers['X-RateLimit-Remaining'],
+        'message' : "リクエスト残り(ユーザー) : " + response.headers['X-RateLimit-Remaining']
+    }
     g = geojsonload()
     table = []
-    for x in json.loads(js)['response']['venues']:
+    for x in json.loads(response.text)['response']['venues']:
         loc = x['location']
         d = { "type": "Feature", "geometry": { "type": "Point", "coordinates": [ loc['lng'], loc['lat'] ] } }
         g['features'].append(d)
@@ -78,7 +82,7 @@ def api1():
         df.to_html(f'{x}/x.html', index=False, escape=False)
         with open(f'{x}/x.html', 'r') as f:
             table = f.read()
-    return make_response(jsonify(dict(geojson=g, table=table)), 200)
+    return make_response(jsonify(dict(geojson=g, table=table, ratelimit=ratelimit)), 200)
 
 @app.route('/syaro/swarm/detail.json', methods=['GET'])
 def api2():
@@ -87,8 +91,12 @@ def api2():
     if not t:
         return make_response('', 400)
     args = dict(oauth_token=t, m="swarm", v="20190930")
-    js = requests.get(f"https://api.foursquare.com/v2/venues/{i}", args).text
-    js = json.loads(js)
+    response = requests.get(f"https://api.foursquare.com/v2/venues/{i}", args)
+    js = json.loads(response.text)
+    js['ratelimit'] = {
+        'Remaining' : response.headers['X-RateLimit-Remaining'],
+        'message' : "リクエスト残り(ユーザー) : " + response.headers['X-RateLimit-Remaining']
+    }
     return make_response(jsonify(js), 200)
 
 if __name__ == "__main__":
