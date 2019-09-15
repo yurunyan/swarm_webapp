@@ -10,21 +10,23 @@ app.config['SECRET_KEY'] = os.urandom(8192)
 @app.route('/syaro/swarm/', methods=['GET'])
 def site_home():
     code = request.args.get('code', None)
-    token = session.get('swarm', None) if not config.debug else config.debug
+    if config.debug:
+        session['swarm'] = config.debug
     g = geojsonload()
-    if not code and not token:
+    if not code and not session.get('swarm', None):
         time.sleep(3)
         url = "https://foursquare.com/oauth2/authenticate?" + \
             f"client_id={config.app['key']}&response_type=code&redirect_uri={config.app['redirect']}"
         return redirect(url)
-    if code and not token:
+    if code and not session.get('swarm', None):
         url = "https://foursquare.com/oauth2/access_token?" + \
             f"client_id={config.app['key']}&client_secret={config.app['secret']}" + \
             f"&grant_type=authorization_code&redirect_uri={config.app['redirect']}&code={code}"
-        token = json.loads(requests.get(url).text)["access_token"]
-        session['swarm'] = token
+        x = json.loads(requests.get(url).text)
+        if "access_token" in x.keys():
+            session['swarm'] = x["access_token"]
     js = requests.get("https://api.foursquare.com/v2/venues/search", dict(
-        oauth_token=token,
+        oauth_token=session.get('swarm', None),
         m="swarm",
         v="20190930",
         radius=50 * 1000,
