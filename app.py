@@ -25,6 +25,7 @@ def site_home():
         x = json.loads(requests.get(url).text)
         if "access_token" in x.keys():
             session['swarm'] = x["access_token"]
+        return redirect(config.app['redirect'])
     js = requests.get("https://api.foursquare.com/v2/venues/search", dict(
         oauth_token=session.get('swarm', None),
         m="swarm",
