@@ -20,36 +20,37 @@
 
 
 
+
 <div class="ui container">
-  <button id="auth" class="big ui button">認証</button>
-  <button id="get" class="huge ui button">get</button>
-  <button id="ramen" class="huge ui button">ラーメン屋</button>
-  <button id="remove_points" class="huge ui button">ポイント削除</button>
-</div>
-<div class="ui container">
-<div id="mapid" class="ui embed stackable" style="height: 80%; width:100%; margin: 0; overflow: hidden;" ></div></div>
-<div id="table" class="ui container">
-  <table id="data-table" border="1" class="ui celled table stackable">
-    <thead>
-      <tr style="text-align: right;">
-        <th>last_access_time</th>
-        <th>page title</th>
-        <th>access count</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in data %}
-      <tr>
-        <td>{{ row.1 }}</td>
-        <td><a href="{{ row.0 }}">{{ row.2 }}</a></td>
-        <td>{{ row.3 }}</td>
-        <td><button class="ui button button_test" id="{{ row.4 }}">change</button></td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+  <div id="mapid" class="ui embed stackable" style="height: 80%; width:100%; margin: 0; overflow: hidden;" ></div></div>
+  <div class="ui container">
+    <button id="auth" class="big ui button">認証</button>
+    <button id="get" class="huge ui button">get</button>
+    <button id="ramen" class="huge ui button">ラーメン屋</button>
+    <button id="remove_points" class="huge ui button">ポイント削除</button>
+  </div>  
+  <div id="table" class="ui container">
+    <table id="data-table" border="1" class="ui celled table stackable">
+      <thead>
+        <tr style="text-align: right;">
+          <th>last_access_time</th>
+          <th>page title</th>
+          <th>access count</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in data %}
+        <tr>
+          <td>{{ row.1 }}</td>
+          <td><a href="{{ row.0 }}">{{ row.2 }}</a></td>
+          <td>{{ row.3 }}</td>
+          <td><button class="ui button button_test" id="{{ row.4 }}">change</button></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 
 </body>

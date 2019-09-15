@@ -4,9 +4,9 @@ function setinit(){
 };
 var map = setinit();
 L.tileLayer(
-'http://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png',
+'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png',
 {
-    attribution: "<a href='http://www.gsi.go.jp/kikakuchousei/kikakuchousei40182.html' target='_blank'>国土地理院</a>|<a href='http://nlftp.mlit.go.jp/ksj/jpgis/datalist/KsjTmplt-P11.html'>国土交通省　国土数値情報</a>"
+    attribution: "<a href='https://www.gsi.go.jp/kikakuchousei/kikakuchousei40182.html' target='_blank'>国土地理院</a>|<a href='http://nlftp.mlit.go.jp/ksj/jpgis/datalist/KsjTmplt-P11.html'>国土交通省　国土数値情報</a>"
 }
 ).addTo(map);
 
@@ -35,10 +35,10 @@ jQuery(function($){
             data:args
         })
         .done( (data) => {
-        l.addLayer(L.geoJson(data.geojson));
-        $('#table').html(data.table);
-        $('table').attr('class', 'ui celled table');
-        settable();
+            l.addLayer(L.geoJson(data.geojson));
+            $('#table').html(data.table);
+            $('table').attr('class', 'ui celled table');
+            settable();
         })    
     };
     $('#get').click(function(){
@@ -50,6 +50,26 @@ jQuery(function($){
     $('#remove_points').on('click', function(){
         l.clearLayers();
     });
+    $(document).on("click", ".venue", function(){
+        var t = $(this);
+        t.attr('class', 'big ui loading button')
+        setTimeout(function(){
+            pushbutton(t);
+        }, 1000);
+        //$(this).parent().append($(this).val());
+    });   
+
+    function pushbutton(t){
+        var args = {id: t.val()};
+        $.ajax({url:'detail.json', type:'GET', data:args}).done( (data) => {
+            if (data.response.venue.friendVisits){
+                t.parent().children('p').html(data.response.venue.friendVisits.count);
+            } else {
+                t.parent().children('p').html('だれもいってないよ');
+            }
+        });
+        t.attr('class', 'big ui disabled button')       
+    };
 
     $('#auth').click(function(){
         setTimeout(function(){
@@ -64,10 +84,10 @@ jQuery(function($){
         } 
         }); 
         $("table").DataTable({
-        displayLength: 100,
-        orderable : true,
-        responsive: true,
-        lengthMenu: [ 5, 10, 100, 1000],
+            displayLength: 100,
+            orderable : true,
+            responsive: true,
+            lengthMenu: [ 5, 10, 100, 1000],
         });
     };
 

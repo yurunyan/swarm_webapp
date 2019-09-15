@@ -3,9 +3,11 @@ from downloads import config
 import requests, json, os, time
 import tempfile
 import pandas as pd
+from uuid import uuid1, uuid4
 
 app = Flask(__name__, static_folder='static', static_url_path='/syaro/swarm/static/')
 app.config['SECRET_KEY'] = os.urandom(8192)
+app.config['JSON_AS_ASCII'] = False
 
 @app.route('/syaro/swarm/', methods=['GET'])
 def site_home():
@@ -37,7 +39,7 @@ def site_home():
         loc = x['location']
         d = { "type": "Feature", "geometry": { "type": "Point", "coordinates": [ loc['lng'], loc['lat'] ] } }
         g['features'].append(d)
-    return render_template('swarm/index.html', app=config.app, g=json.dumps(g), v=os.urandom(16))
+    return render_template('swarm/index.html', app=config.app, g=json.dumps(g), v=uuid1())
     # js=json.dumps(js, indent=2, ensure_ascii=False)
 
 def geojsonload():
@@ -49,7 +51,7 @@ def geojsonload():
     return res
 
 @app.route('/syaro/swarm/search.json', methods=['GET'])
-def site2():
+def api1():
     t = session.get('swarm', None) if not config.debug else config.debug
     ll = request.args.get('ll', None, str)
     categoryId = request.args.get('categoryId', None, str)
@@ -66,14 +68,28 @@ def site2():
         d = { "type": "Feature", "geometry": { "type": "Point", "coordinates": [ loc['lng'], loc['lat'] ] } }
         g['features'].append(d)
         table.append([
-            x['name'], '\n'.join([xx['name'] for xx in x['categories']])
+            x['name'], '\n'.join([xx['name'] for xx in x['categories']]), loc["distance"], 
+            f'<button class="big ui button venue" id="venue" value="{x["id"]}">{x["id"]}</button>' + \
+                '<p class="friend"></p>'
         ])
+    pd.set_option("display.max_colwidth", 10000)
     df = pd.DataFrame(table)
     with tempfile.TemporaryDirectory() as x:
-        df.to_html(f'{x}/x.html')
+        df.to_html(f'{x}/x.html', index=False, escape=False)
         with open(f'{x}/x.html', 'r') as f:
             table = f.read()
     return make_response(jsonify(dict(geojson=g, table=table)), 200)
+
+@app.route('/syaro/swarm/detail.json', methods=['GET'])
+def api2():
+    t = session.get('swarm', None) if not config.debug else config.debug
+    i = request.args.get('id', '4d69fef30a25b60c64662c90', str)
+    if not t:
+        return make_response('', 400)
+    args = dict(oauth_token=t, m="swarm", v="20190930")
+    js = requests.get(f"https://api.foursquare.com/v2/venues/{i}", args).text
+    js = json.loads(js)
+    return make_response(jsonify(js), 200)
 
 if __name__ == "__main__":
     app.run(debug=True, threaded=True, processes=1)
