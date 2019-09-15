@@ -57,5 +57,5 @@
 var geojson = L.geoJson({{ g | safe }});
 var url = "https://foursquare.com/oauth2/authenticate?client_id={{ app.key }}&response_type=code&redirect_uri={{ app.redirect }};"
 </script>
-<script src="/syaro/swarm/static/swarm.js"></script>
+<script src="/syaro/swarm/static/swarm.js?v={{ v }}"></script>
 </html>

@@ -37,7 +37,7 @@ def site_home():
         loc = x['location']
         d = { "type": "Feature", "geometry": { "type": "Point", "coordinates": [ loc['lng'], loc['lat'] ] } }
         g['features'].append(d)
-    return render_template('swarm/index.html', app=config.app, g=json.dumps(g))
+    return render_template('swarm/index.html', app=config.app, g=json.dumps(g), v=os.urandom(16))
     # js=json.dumps(js, indent=2, ensure_ascii=False)
 
 def geojsonload():
