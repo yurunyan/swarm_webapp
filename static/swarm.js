@@ -1,5 +1,13 @@
 function setinit(){
     var map = L.map('mapid').setView([35.474834, 139.367800], 14);
+    var option = {
+        position: 'bottomleft', // topright, topleft, bottomright, bottomleft
+        text: '検索',
+        placeholder: '地名で検索(駅名などは不完全)'
+      };
+    var osmGeocoder = new L.Control.OSMGeocoder(option);
+    map.addControl(osmGeocoder);
+    // https://kita-note.com/leaflet-plugin-leaflet-control-osm-geocoder
     return map;
 };
 var map = setinit();
@@ -54,6 +62,35 @@ jQuery(function($){
     $('#remove_points').on('click', function(){
         l.clearLayers();
     });
+    $("#category_select").change(function () {
+        if ($(this).val() != 'default'){
+            get({categoryId: $(this).val()});
+            $(this).val('default');
+        };
+    }).change(); 
+    $("#current_location").on('click', function () {
+        var option = {
+            "enableHighAccuracy": false ,
+            "timeout": 8000 ,
+            "maximumAge": 5000 ,
+        };
+        function success(pos) {
+            var lat=pos.coords.latitude;
+            var lon=pos.coords.longitude;
+            map.setView([ lat,lon ]);
+        };
+        function error( error ){
+            var errorMessage = {
+                0: "原因不明のエラーが発生しました…。" ,
+                1: "位置情報の取得が許可されませんでした…。" ,
+                2: "電波状況などで位置情報が取得できませんでした…。" ,
+                3: "位置情報の取得に時間がかかり過ぎてタイムアウトしました…。" ,
+            } ;
+            alert( errorMessage[error.code] ) ;
+        };
+        navigator.geolocation.getCurrentPosition(success, error, option) ;
+    });
+
     $(document).on("click", ".venue", function(){
         var t = $(this);
         t.attr('class', 'big ui loading button')
@@ -61,14 +98,14 @@ jQuery(function($){
             pushbutton(t);
         }, 1000);
         //$(this).parent().append($(this).val());
-    });   
+    });
 
     function pushbutton(t){
         var args = {id: t.val()};
         $.ajax({url:'detail.json', type:'GET', data:args}).done( (data) => {
             if (data.response.venue.friendVisits){
-                t.parent().children('p').html(data.response.venue.friendVisits.count);
-                
+                t.parent().children('p').html(data.response.venue.friendVisits.summary);
+                t.parent().children('p').append('<br>' + data.friends_str);
             } else {
                 t.parent().children('p').html('だれもいってないよ');
             }

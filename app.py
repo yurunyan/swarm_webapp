@@ -4,6 +4,9 @@ import requests, json, os, time
 import tempfile
 import pandas as pd
 from uuid import uuid1, uuid4
+from datetime import datetime
+from pprint import pprint
+import numpy as np
 
 app = Flask(__name__, static_folder='static', static_url_path='/syaro/swarm/static/')
 app.config['SECRET_KEY'] = os.urandom(8192)
@@ -16,7 +19,7 @@ def site_home():
         session['swarm'] = config.debug
     g = geojsonload()
     if not code and not session.get('swarm', None):
-        print("authentication start")
+        print("authentication start", datetime.now())
         url = "https://foursquare.com/oauth2/authenticate?" + \
             f"client_id={config.app['key']}&response_type=code&redirect_uri={config.app['redirect']}"
         return redirect(url)
@@ -38,7 +41,8 @@ def site_home():
     for x in json.loads(js)['response']['venues']:
         loc = x['location']
         d = { "type": "Feature", "geometry": { "type": "Point", "coordinates": [ loc['lng'], loc['lat'] ] } }
-        g['features'].append(d)
+        if not config.debug:
+            g['features'].append(d)
     return render_template('swarm/index.html', app=config.app, g=json.dumps(g), v=uuid1())
     # js=json.dumps(js, indent=2, ensure_ascii=False)
 
@@ -69,15 +73,20 @@ def api1():
     table = []
     for x in json.loads(response.text)['response']['venues']:
         loc = x['location']
+        item = [
+            x['name'], '\n'.join([xx['name'] for xx in x['categories']]), loc["distance"], 
+            f'<button class="big ui button venue" id="venue" value="{x["id"]}">チェックインした友人数</button>' + \
+                '<p class="friend"></p>', -1
+        ]
+        if "mayor" in x.keys():
+            item[4] = x["mayor"]["count"]
         d = { "type": "Feature", "geometry": { "type": "Point", "coordinates": [ loc['lng'], loc['lat'] ] } }
         g['features'].append(d)
-        table.append([
-            x['name'], '\n'.join([xx['name'] for xx in x['categories']]), loc["distance"], 
-            f'<button class="big ui button venue" id="venue" value="{x["id"]}">{x["id"]}</button>' + \
-                '<p class="friend"></p>'
-        ])
+        table.append(item)
     pd.set_option("display.max_colwidth", 10000)
     df = pd.DataFrame(table)
+    df.columns = ['name', 'category', 'distance', '', "mayor's check count"]
+    # df["mayor's check count"].astype(np.int64)
     with tempfile.TemporaryDirectory() as x:
         df.to_html(f'{x}/x.html', index=False, escape=False)
         with open(f'{x}/x.html', 'r') as f:
@@ -97,6 +106,15 @@ def api2():
         'Remaining' : response.headers['X-RateLimit-Remaining'],
         'message' : "リクエスト残り(ユーザー) : " + response.headers['X-RateLimit-Remaining']
     }
+    js['friends_str'] = ''
+    if "friendVisits" in js['response']['venue'].keys():
+        for x in js['response']['venue']["friendVisits"]['items']:
+            js['friends_str'] += x['user']['firstName']
+            if "lastName" in x['user'].keys():
+                js['friends_str'] += ' ' + x['user']['lastName']
+            js['friends_str'] += ' ・ '
+    js['friends_str'] += ' ...'
+            
     return make_response(jsonify(js), 200)
 
 if __name__ == "__main__":
