@@ -26,7 +26,7 @@ def site_home():
     if code and not session.get('swarm', None):
         url = "https://foursquare.com/oauth2/access_token?" + \
             f"client_id={config.app['key']}&client_secret={config.app['secret']}" + \
-            f"&grant_type=authorization_code&redirect_uri={config.app['redirect']}&code={code}"
+            f"&grant_type=authorization_code&redirect_uri={request.url_root}syaro/swarm&code={code}"
         x = json.loads(requests.get(url).text)
         if "access_token" in x.keys():
             session['swarm'] = x["access_token"]
