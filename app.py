@@ -21,7 +21,7 @@ def site_home():
     if not code and not session.get('swarm', None):
         print("authentication start", datetime.now())
         url = "https://foursquare.com/oauth2/authenticate?" + \
-            f"client_id={config.app['key']}&response_type=code&redirect_uri={config.app['redirect']}"
+            f"client_id={config.app['key']}&response_type=code&redirect_uri={request.url_root}/syaro/swarm"
         return redirect(url)
     if code and not session.get('swarm', None):
         url = "https://foursquare.com/oauth2/access_token?" + \
